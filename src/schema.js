@@ -67,10 +67,46 @@ const resolvers = {
   DateTime: GraphQLDateTime,
   Query: {
     threads: async (_, { sortBy, skip = 0, limit = 10 }, ctx) => {
-      return await ctx.db.select().from("users").limit(limit).offset(skip).orderBy(sortBy);
+      return await ctx.db
+        .select()
+        .from("users")
+        .limit(limit)
+        .offset(skip)
+        .orderBy(sortBy);
     },
     thread: async (_, { id }, ctx) => {
-      return await ctx.db.first().from("users").where({ id })
+      return await ctx.db
+        .first()
+        .from("users")
+        .where({ id });
+    }
+  },
+  Thread: {
+    likes: async ({ id }, { skip = 0, limit = 10 }, ctx) => {
+      return await ctx.db
+        .select()
+        .from("likes")
+        .limit(limit)
+        .offset(skip)
+        .where({ thread_id: id });
+    },
+    replies: async ({ id }, { skip = 0, limit = 10 }, ctx) => {
+      return await ctx.db
+        .select()
+        .from("replies")
+        .limit(limit)
+        .offset(skip)
+        .where({ thread_id: id });
+    }
+  },
+  Reply: {
+    likes: async ({ id }, { skip = 0, limit = 10 }, ctx) => {
+      return await ctx.db
+        .select()
+        .from("likes")
+        .limit(limit)
+        .offset(skip)
+        .where({ reply_id: id });
     }
   },
   Mutation: {
