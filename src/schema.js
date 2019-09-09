@@ -1,3 +1,4 @@
+const cuid = require('cuid');
 const { gql } = require('apollo-server-express');
 const { GraphQLDateTime } = require('graphql-iso-date');
 
@@ -65,6 +66,12 @@ const typeDefs = gql`
 
 const resolvers = {
   DateTime: GraphQLDateTime,
+  User: parent => ({
+    id: parent.id,
+    username: parent.username,
+    avatar: parent.avatar || null,
+    createdAt: parent.created_at
+  }),
   Query: {
     threads: async (_, { sortBy, skip = 0, limit = 10 }, ctx) => {
       return await ctx.db.select().from("users").limit(limit).offset(skip).orderBy(sortBy);
@@ -83,6 +90,31 @@ const resolvers = {
 
       if (userRows || userRows.length !== 0) {
         throw new Error("A user with this username already exists!");
+      }
+
+      const user = {
+        id: cuid(),
+        username,
+        hash: ctx.crypt.hash(password)
+      };
+
+      const [res] = await ctx.db
+        .insert(user)
+        .into('users')
+        .returning(['id', 'username', 'hash', 'avatar', 'created_at']);
+
+      return res;
+    },
+    signin: async (_, { username, password }, ctx) => {
+      const userRows = await ctx.db.select()
+        .from('users')
+        .where({ username })
+        .limit(1);
+
+      if (userRows && userRows.length === 1) {
+        return userRows[0];
+      } else {
+        throw new Error('A user with this username already exists!');
       }
     }
   }
