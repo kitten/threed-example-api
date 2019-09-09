@@ -8,7 +8,6 @@ const typeDefs = gql`
   enum SortBy {
     LATEST
     OLDEST
-    POPULAR
   }
 
   type User {
@@ -64,6 +63,16 @@ const typeDefs = gql`
   }
 `;
 
+const translateSortBy = (baseQuery, val) => {
+  switch (val) {
+    case "LATEST":
+      return baseQuery.orderBy("created_at", "desc");
+    case "POPULAR":
+      return baseQuery.orderBy("created_at", "desc");
+    default: throw new Error("Invalid sort_by field.");
+  }
+}
+
 const resolvers = {
   DateTime: GraphQLDateTime,
   User: parent => ({
@@ -74,27 +83,53 @@ const resolvers = {
   }),
   Query: {
     threads: async (_, { sortBy, skip = 0, limit = 10 }, ctx) => {
-      return await ctx.db
-        .select()
-        .from("users")
+      const baseQuery = ctx.db
+        .select(
+          "threads.id",
+          "threads.title",
+          "threads.text",
+          "threads.created_by AS createdBy",
+          "threads.created_at AS createdAt"
+        )
+        .from("threads")
         .limit(limit)
         .offset(skip)
         .orderBy(sortBy);
+
+      return await translateSortBy(baseQuery, sortBy);
     },
     thread: async (_, { id }, ctx) => {
       return await ctx.db
         .first()
-        .from("users")
+        .from("threads")
         .where({ id });
     }
   },
   Thread: {
+    createdBy: async ({ createdBy }, _, ctx) => {
+      return await ctx.db
+        .first("id", "username", "avatar", "created_at AS createdAt")
+        .from("users")
+        .where({ id: createdBy });
+    },
+    likesNumber: async ({ id }, _, ctx) => {
+      return await ctx.db
+        .count('id')
+        .from("likes")
+        .where({ thread_id: id });
+    },
     likes: async ({ id }, { skip = 0, limit = 10 }, ctx) => {
       return await ctx.db
         .select()
         .from("likes")
         .limit(limit)
         .offset(skip)
+        .where({ thread_id: id });
+    },
+    repliesNumber: async ({ id }, _, ctx) => {
+      return await ctx.db
+        .count('id')
+        .from("replies")
         .where({ thread_id: id });
     },
     replies: async ({ id }, { skip = 0, limit = 10 }, ctx) => {
@@ -107,6 +142,12 @@ const resolvers = {
     }
   },
   Reply: {
+    likesNumber: async ({ id }, _, ctx) => {
+      return await ctx.db
+        .count('id')
+        .from("likes")
+        .where({ reply_id: id });
+    },
     likes: async ({ id }, { skip = 0, limit = 10 }, ctx) => {
       return await ctx.db
         .select()
@@ -136,21 +177,22 @@ const resolvers = {
 
       const [res] = await ctx.db
         .insert(user)
-        .into('users')
-        .returning(['id', 'username', 'hash', 'avatar', 'created_at']);
+        .into("users")
+        .returning(["id", "username", "hash", "avatar", "created_at"]);
 
       return res;
     },
     signin: async (_, { username, password }, ctx) => {
-      const userRows = await ctx.db.select()
-        .from('users')
+      const userRows = await ctx.db
+        .select()
+        .from("users")
         .where({ username })
         .limit(1);
 
       if (userRows && userRows.length === 1) {
         return userRows[0];
       } else {
-        throw new Error('A user with this username already exists!');
+        throw new Error("A user with this username already exists!");
       }
     }
   }

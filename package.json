@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "main": "index.js",
   "license": "MIT",
+  "scripts": {
+    "start": "nodemon src/index.js"
+  },
   "resolutions": {
     "graphql-subscriptions": "^1.1.0"
   },
@@ -19,5 +22,8 @@
     "knex": "^0.19.3",
     "pg": "^7.12.1",
     "subscriptions-transport-ws": "^0.9.16"
+  },
+  "devDependencies": {
+    "nodemon": "^1.19.2"
   }
 }
