@@ -67,7 +67,7 @@ const resolvers = {
   DateTime: GraphQLDateTime,
   Query: {
     threads: async (_, { sortBy, skip = 0, limit = 10 }, ctx) => {
-      const users = await ctx.db.select().from("users").limit(limit).offset(skip).orderBy(sortBy)
+      return await ctx.db.select().from("users").limit(limit).offset(skip).orderBy(sortBy);
     },
     thread: async (_, { id }, ctx) => {
       return await ctx.db.first().from("users").where({ id })
