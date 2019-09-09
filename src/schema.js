@@ -51,6 +51,16 @@ const typeDefs = gql`
     threads(sortBy: SortBy!, skip: Int, limit: Int): [Thread!]!
     thread(id: ID!): Thread
   }
+  
+  input ThreadInput {
+    title: String!
+    text: String
+  }
+  
+  input ReplyInput {
+    threadId: ID!
+    text: String!
+  }
 
   type SigninResult {
     me: User!
@@ -58,6 +68,10 @@ const typeDefs = gql`
   }
 
   type Mutation {
+    createThread(input: ThreadInput!): Thread!
+    reply(input: ReplyInput!): Thread!
+    likeThread(threadId: ID!): Thread!
+    likeReply(replyId: ID!): Reply!
     signup(username: String!, password: String!): SigninResult
     signin(username: String!, password: String!): SigninResult
   }
@@ -172,6 +186,66 @@ const resolvers = {
     }
   },
   Mutation: {
+    createThread: async (_, { input }, ctx) => {
+      const thread = {
+        id: cuid(),
+        title: input.title,
+        text: input.text || null,
+        created_by: ctx.user.id
+      };
+
+      const [res] = await ctx.db
+        .insert(thread)
+        .into('threads')
+        .returning(['id', 'title', 'text', 'created_by', 'created_at']);
+
+      return res;
+    },
+    reply: async (_, { input }, ctx) => {
+      const reply = {
+        id: cuid(),
+        thread_id: input.threadId,
+        text: input.text || null,
+        created_by: ctx.user.id
+      };
+
+      const [res] = await ctx.db
+        .insert(reply)
+        .into('replies')
+        .returning(['id', 'thread_id', 'text', 'created_by', 'created_at']);
+
+      return res;
+    },
+    likeThread: async (_, { threadId }, ctx) => {
+      const like = {
+        id: cuid(),
+        thread_id: threadId,
+        reply_id: null,
+        created_by: ctx.user.id
+      };
+
+      const [res] = await ctx.db
+        .insert(like)
+        .into('likes')
+        .returning(['id', 'thread_id', 'reply_id', 'created_by', 'created_at']);
+
+      return res;
+    },
+    likeReply: async (_, { replyId }, ctx) => {
+      const reply = {
+        id: cuid(),
+        reply_id: replyId,
+        thread_id: null,
+        created_by: ctx.user.id
+      };
+
+      const [res] = await ctx.db
+        .insert(like)
+        .into('likes')
+        .returning(['id', 'thread_id', 'reply_id', 'created_by', 'created_at']);
+
+      return res;
+    },
     signup: async (_, { username, password }, ctx) => {
       const userEntry = await ctx.db
         .select()
