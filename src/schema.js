@@ -41,8 +41,6 @@ const typeDefs = gql`
 
   type Like {
     id: ID!
-    thread: Thread
-    reply: Reply
     createdBy: User!
     createdAt: DateTime!
   }
@@ -224,12 +222,8 @@ const resolvers = {
         created_by: ctx.user.id
       };
 
-      const [res] = await ctx.db
-        .insert(like)
-        .into('likes')
-        .returning(['id', 'thread_id', 'reply_id', 'created_by', 'created_at']);
-
-      return res;
+      await ctx.db.insert(like).into('likes')
+      return await ctx.db.first().from('threads').where({ id: threadId });
     },
     likeReply: async (_, { replyId }, ctx) => {
       const reply = {
@@ -239,12 +233,8 @@ const resolvers = {
         created_by: ctx.user.id
       };
 
-      const [res] = await ctx.db
-        .insert(like)
-        .into('likes')
-        .returning(['id', 'thread_id', 'reply_id', 'created_by', 'created_at']);
-
-      return res;
+      await ctx.db.insert(like).into('likes');
+      return await ctx.db.first().from('replies').where({ id: replyId });
     },
     signup: async (_, { username, password }, ctx) => {
       const userEntry = await ctx.db
