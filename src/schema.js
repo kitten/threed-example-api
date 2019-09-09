@@ -16,7 +16,7 @@ const typeDefs = gql`
     avatar: String
     createdAt: DateTime
   }
-  
+
   type Reply {
     id: ID!
     text: String!
@@ -26,7 +26,7 @@ const typeDefs = gql`
     likesNumber: Int!
     likes(skip: Int, limit: Int): [Like!]!
   }
-  
+
   type Thread {
     id: ID!
     title: String!
@@ -51,12 +51,12 @@ const typeDefs = gql`
     threads(sortBy: SortBy!, skip: Int, limit: Int): [Thread!]!
     thread(id: ID!): Thread
   }
-  
+
   type SigninResult {
     me: User!
     token: String!
   }
-  
+
   type Mutation {
     signup(username: String!, password: String!): SigninResult
     signin(username: String!, password: String!): SigninResult
@@ -66,21 +66,26 @@ const typeDefs = gql`
 const resolvers = {
   DateTime: GraphQLDateTime,
   Query: {
+    threads: async (_, { sortBy, skip = 0, limit = 10 }, ctx) => {
+      const users = await ctx.db.select().from("users").limit(limit).offset(skip).orderBy(sortBy)
+    },
+    thread: async (_, { id }, ctx) => {
+      return await ctx.db.first().from("users").where({ id })
+    }
   },
   Mutation: {
     signup: async (_, { username, password }, ctx) => {
-      const userRows = await ctx.db.select()
-        .from('users')
+      const userRows = await ctx.db
+        .select()
+        .from("users")
         .where({ username })
         .limit(1);
 
       if (userRows || userRows.length !== 0) {
-        throw new Error('A user with this username already exists!');
+        throw new Error("A user with this username already exists!");
       }
-
-      
     }
-  },
+  }
 };
 
 module.exports = { typeDefs, resolvers };
