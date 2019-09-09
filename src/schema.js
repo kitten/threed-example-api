@@ -118,11 +118,11 @@ const resolvers = {
   },
   Mutation: {
     signup: async (_, { username, password }, ctx) => {
-      const userRows = await ctx.db
+      const userEntry = await ctx.db
         .select()
         .from("users")
         .where({ username })
-        .limit(1);
+        .first();
 
       if (userRows || userRows.length !== 0) {
         throw new Error("A user with this username already exists!");
@@ -142,13 +142,13 @@ const resolvers = {
       return res;
     },
     signin: async (_, { username, password }, ctx) => {
-      const userRows = await ctx.db.select()
+      const userEntry = await ctx.db.select()
         .from('users')
         .where({ username })
-        .limit(1);
+        .first();
 
-      if (userRows && userRows.length === 1) {
-        return userRows[0];
+      if (userEntry) {
+        return userEntry;
       } else {
         throw new Error('A user with this username already exists!');
       }
