@@ -114,7 +114,7 @@ const resolvers = {
     },
     likesNumber: async ({ id }, _, ctx) => {
       return await ctx.db
-        .count('id')
+        .count("id")
         .from("likes")
         .where({ thread_id: id });
     },
@@ -128,7 +128,7 @@ const resolvers = {
     },
     repliesNumber: async ({ id }, _, ctx) => {
       return await ctx.db
-        .count('id')
+        .count("id")
         .from("replies")
         .where({ thread_id: id });
     },
@@ -141,10 +141,18 @@ const resolvers = {
         .where({ thread_id: id });
     }
   },
+  Like: {
+    createdBy: async ({ created_by: createdBy }, _, ctx) => {
+      return await ctx.db
+        .first("id", "username", "avatar", "created_at AS createdAt")
+        .from("users")
+        .where({ id: createdBy });
+    }
+  },
   Reply: {
     likesNumber: async ({ id }, _, ctx) => {
       return await ctx.db
-        .count('id')
+        .count("id")
         .from("likes")
         .where({ reply_id: id });
     },
@@ -155,6 +163,12 @@ const resolvers = {
         .limit(limit)
         .offset(skip)
         .where({ reply_id: id });
+    },
+    createdBy: async ({ created_by: createdBy }, _, ctx) => {
+      return await ctx.db
+        .first("id", "username", "avatar", "created_at AS createdAt")
+        .from("users")
+        .where({ id: createdBy });
     }
   },
   Mutation: {
@@ -183,8 +197,9 @@ const resolvers = {
       return res;
     },
     signin: async (_, { username, password }, ctx) => {
-      const userEntry = await ctx.db.select()
-        .from('users')
+      const userEntry = await ctx.db
+        .select()
+        .from("users")
         .where({ username })
         .first();
 
