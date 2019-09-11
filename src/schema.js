@@ -217,8 +217,6 @@ const resolvers = {
         .into("threads")
         .returning(["id", "title", "text", "created_by", "created_at"]);
 
-      pubsub.publish('newThread', { newThread: res });
-
       return res;
     },
     reply: async (_, { input }, ctx) => {
@@ -270,7 +268,7 @@ const resolvers = {
         created_by: ctx.user.id
       };
 
-      await ctx.db.insert(like).into("likes");
+      await ctx.db.insert(reply).into("likes");
       return await ctx.db
         .first()
         .from("replies")
