@@ -25,8 +25,11 @@ const server = new ApolloServer({
   cacheControl: false,
   tracing: DEV,
   introspection: DEV,
-  playground: DEV,
   subscriptions: '/subscriptions',
+  playground: DEV ? {
+    endpoint: '/graphql',
+    subscriptionEndpoint: '/subscriptions',
+  } : false,
   context: ({ req, connection }) => {
     if (connection) {
       return context;
