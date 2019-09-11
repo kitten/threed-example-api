@@ -338,10 +338,12 @@ const resolvers = {
         .where({ username })
         .first();
 
-      if (user) {
-        return { user, token: ctx.jwt.create(user) };
-      } else {
+      if (!user) {
         throw new GraphQLError("A user with this username already exists!");
+      } else if (!ctx.crypt.compare(password, user.hash)) {
+        throw new GraphQLError("Incorrect password!");
+      } else {
+        return { user, token: ctx.jwt.create(user) };
       }
     }
   },
