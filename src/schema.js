@@ -71,10 +71,10 @@ const typeDefs = gql`
   }
 
   type Subscription {
-    newReply(threadId: ID!): Reply
-    newThread: Thread
-    newTheadLike(threadId: ID!): Thread
-    newReplyLike(replyId: ID!): Reply
+    newThread: Thread!
+    newReply(threadId: ID!): Reply!
+    newThreadLike(threadId: ID!): Like!
+    newReplyLike(replyId: ID!): Like!
   }
 
   type Mutation {
@@ -270,28 +270,38 @@ const resolvers = {
         .from("threads")
         .where({ id: threadId });
 
-      pubsub.publish("newThreadLike", { newThreadLike: res });
-      return res;
+      if (res) {
+        pubsub.publish("newThreadLike", { newThreadLike: res });
+        return res;
+      } else {
+        return null;
+      }
     },
     likeReply: async (_, { replyId }, ctx) => {
       if (!ctx.user) {
         throw new GraphQLError("Not Authenticated");
       }
 
-      const reply = {
+      const like = {
         id: cuid(),
         reply_id: replyId,
         thread_id: null,
         created_by: ctx.user.id
       };
 
-      await ctx.db.insert(reply).into("likes");
+      await ctx.db.insert(like).into("likes");
+
       const res = await ctx.db
         .first()
         .from("replies")
         .where({ id: replyId });
-      pubsub.publish("newReplyLike", { newReplyLike: res });
-      return res;
+
+      if (res) {
+        pubsub.publish("newReplyLike", { newReplyLike: like });
+        return res;
+      } else {
+        return null;
+      }
     },
     signup: async (_, { username, password }, ctx) => {
       const userEntry = await ctx.db
@@ -336,6 +346,9 @@ const resolvers = {
     }
   },
   Subscription: {
+    newThread: {
+      subscribe: () => pubsub.asyncIterator("newThread")
+    },
     newReply: {
       subscribe: withFilter(
         () => pubsub.asyncIterator("newReply"),
@@ -355,9 +368,6 @@ const resolvers = {
         (payload, variables) =>
           variables.threadId === payload.newThreadLike.id
       )
-    },
-    newThread: {
-      subscribe: () => pubsub.asyncIterator("newThread")
     }
   }
 };

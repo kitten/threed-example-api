@@ -1,15 +1,7 @@
-const {
-  POSTGRES_HOST = '127.0.0.1',
-  POSTGRES_USER = 'postgres',
-  POSTGRES_PASSWORD = 'postgres',
-  POSTGRES_DB = 'postgres',
-  JWT_SECRET = 'threed-secret-123'
-} = process.env;
+const { JWT_SECRET = 'threed-secret-123' } = process.env;
+const POSTGRES_CONNECTION = process.env.DATABASE_URL || 'postgres://postgres:postgres@127.0.0.1/postgres';
 
 module.exports = {
-  POSTGRES_HOST,
-  POSTGRES_USER,
-  POSTGRES_PASSWORD,
-  POSTGRES_DB,
+  POSTGRES_CONNECTION,
   JWT_SECRET
 };
