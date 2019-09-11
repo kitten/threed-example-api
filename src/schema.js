@@ -86,8 +86,7 @@ const resolvers = {
         .select()
         .from("threads")
         .limit(limit)
-        .offset(skip)
-        .orderBy(sortBy);
+        .offset(skip);
 
       switch (sortBy) {
         case 'LATEST':
