@@ -34,10 +34,14 @@ SubscriptionServer.create(
   }
 );
 
+websocketServer.listen(WS_PORT, () =>
+  console.log(`Websocket Server is now running on ws://localhost:${WS_PORT}`)
+);
+
 const server = new ApolloServer({
   typeDefs: schema.typeDefs,
   resolvers: schema.resolvers,
-  subscriptionsPath: `http://localhost:${WS_PORT}`,
+  subscriptionsPath: `ws://localhost:${WS_PORT}`,
   cacheControl: false,
   tracing: DEV,
   introspection: DEV,
