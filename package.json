@@ -20,8 +20,7 @@
     "graphql-subscriptions": "^1.1.0",
     "jsonwebtoken": "^8.5.1",
     "knex": "^0.19.3",
-    "pg": "^7.12.1",
-    "subscriptions-transport-ws": "^0.9.16"
+    "pg": "^7.12.1"
   },
   "devDependencies": {
     "nodemon": "^1.19.2"
