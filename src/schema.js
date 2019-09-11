@@ -2,9 +2,8 @@ const cuid = require('cuid');
 const { GraphQLError } = require('graphql');
 const { gql } = require('apollo-server-express');
 const { GraphQLDateTime } = require('graphql-iso-date');
-const { PubSub } = require('graphql-subscriptions');
 
-const pubsub = new PubSub();
+const pubsub = require('./pubsub');
 
 const typeDefs = gql`
   scalar DateTime
