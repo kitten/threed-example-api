@@ -37,10 +37,10 @@ const typeDefs = gql`
     text: String
     createdBy: User!
     createdAt: DateTime!
-    likesNumber: Int!
-    likes(skip: Int, limit: Int): [Like!]!
-    repliesNumber: Int!
-    replies(skip: Int, limit: Int): [Reply!]!
+    likesNumber: Int
+    likes(skip: Int, limit: Int): [Like!]
+    repliesNumber: Int
+    replies(skip: Int, limit: Int): [Reply!]
   }
 
   type Like {
