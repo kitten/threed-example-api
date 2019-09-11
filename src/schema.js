@@ -73,6 +73,8 @@ const typeDefs = gql`
   type Subscription {
     newReply(threadId: ID!): Reply!
     newThread: Thread!
+    newTheadLike(threadId: ID!): Thread!
+    newReplyLike(replyId: ID!): Reply!
   }
 
   type Mutation {
@@ -220,7 +222,7 @@ const resolvers = {
         .returning(["id", "title", "text", "created_by", "created_at"]);
 
       if (res) {
-        pubsub.publish('newThread', { newThread: res });
+        pubsub.publish("newThread", { newThread: res });
         return res;
       } else {
         return null;
@@ -244,12 +246,11 @@ const resolvers = {
         .returning(["id", "thread_id", "text", "created_by", "created_at"]);
 
       if (res) {
-        pubsub.publish('newReply', { newReply: res });
+        pubsub.publish("newReply", { newReply: res });
         return res;
       } else {
         return null;
       }
-
     },
     likeThread: async (_, { threadId }, ctx) => {
       if (!ctx.user) {
@@ -264,10 +265,13 @@ const resolvers = {
       };
 
       await ctx.db.insert(like).into("likes");
-      return await ctx.db
+      const res = await ctx.db
         .first()
         .from("threads")
         .where({ id: threadId });
+
+      pubsub.publish("newThreadLike", { newThreadLike: res });
+      return res;
     },
     likeReply: async (_, { replyId }, ctx) => {
       if (!ctx.user) {
@@ -282,10 +286,12 @@ const resolvers = {
       };
 
       await ctx.db.insert(reply).into("likes");
-      return await ctx.db
+      const res = await ctx.db
         .first()
         .from("replies")
         .where({ id: replyId });
+      pubsub.publish("newReplyLike", { newReplyLike: res });
+      return res;
     },
     signup: async (_, { username, password }, ctx) => {
       const userEntry = await ctx.db
@@ -332,12 +338,26 @@ const resolvers = {
   Subscription: {
     newReply: {
       subscribe: withFilter(
-        () => pubsub.asyncIterator('newReply'),
-        (payload, variables) => variables.threadId === payload.newReply.thread_id
+        () => pubsub.asyncIterator("newReply"),
+        (payload, variables) =>
+          variables.threadId === payload.newReply.thread_id
+      )
+    },
+    newReplyLike: {
+      subscribe: withFilter(
+        () => pubsub.asyncIterator("newReplyLike"),
+        (payload, variables) => variables.replyId === payload.newReplyLike.id
+      )
+    },
+    newThreadLike: {
+      subscribe: withFilter(
+        () => pubsub.asyncIterator("newThreadLike"),
+        (payload, variables) =>
+          variables.threadId === payload.newThreadLike.id
       )
     },
     newThread: {
-      subscribe: () => pubsub.asyncIterator('newThread')
+      subscribe: () => pubsub.asyncIterator("newThread")
     }
   }
 };
