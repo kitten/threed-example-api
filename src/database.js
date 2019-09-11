@@ -21,18 +21,15 @@ const seed = async () => {
       .map(x => x.trim())
       .filter(Boolean);
 
-    await Promise.all(
-      sql
-        .split(';')
-        .map(x => x.trim())
-        .filter(Boolean)
-        .map(x => db.raw(x))
-    );
+    for (let i = 0, l = statements.length; i < l; i++) {
+      try {
+        await db.raw(statements[i]);
+      } catch (err) {
+        console.error(err.message);
+      }
+    }
   }
 };
 
-seed().catch(err => {
-  console.error(err.message);
-});
-
+seed();
 module.exports = db;
