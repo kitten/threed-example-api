@@ -46,3 +46,4 @@ CREATE TABLE users (
 
 CREATE UNIQUE INDEX users_pkey ON users(id text_ops);
 CREATE UNIQUE INDEX users_handle_key ON users(username text_ops);
+
