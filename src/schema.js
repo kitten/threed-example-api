@@ -1,4 +1,5 @@
 const cuid = require('cuid');
+const { GraphQLError } = require('graphql');
 const { gql } = require('apollo-server-express');
 const { GraphQLDateTime } = require('graphql-iso-date');
 
@@ -48,6 +49,7 @@ const typeDefs = gql`
   type Query {
     threads(sortBy: SortBy!, skip: Int, limit: Int): [Thread!]!
     thread(id: ID!): Thread
+    me: User
   }
 
   input ThreadInput {
@@ -61,7 +63,7 @@ const typeDefs = gql`
   }
 
   type SigninResult {
-    me: User!
+    user: User!
     token: String!
   }
 
@@ -70,8 +72,8 @@ const typeDefs = gql`
     reply(input: ReplyInput!): Thread!
     likeThread(threadId: ID!): Thread!
     likeReply(replyId: ID!): Reply!
-    signup(username: String!, password: String!): SigninResult
-    signin(username: String!, password: String!): SigninResult
+    signup(username: String!, password: String!): SigninResult!
+    signin(username: String!, password: String!): SigninResult!
   }
 `;
 
@@ -101,15 +103,22 @@ const resolvers = {
         .first()
         .from("threads")
         .where({ id });
+    },
+    me: async (_, __, ctx) => {
+      if (!ctx.user) {
+        return null;
+      }
+
+      return await ctx.db
+        .first()
+        .from('users')
+        .where({ id: ctx.user.id });
     }
   },
 
-  User: parent => ({
-    id: parent.id,
-    username: parent.username,
-    avatar: parent.avatar || null,
-    createdAt: parent.created_at
-  }),
+  User: {
+    createdAt: parent => parent.created_at
+  },
 
   Thread: {
     createdAt: parent => parent.created_at,
@@ -188,6 +197,10 @@ const resolvers = {
 
   Mutation: {
     createThread: async (_, { input }, ctx) => {
+      if (!ctx.user) {
+        throw new GraphQLError("Not Authenticated");
+      }
+
       const thread = {
         id: cuid(),
         title: input.title,
@@ -203,6 +216,10 @@ const resolvers = {
       return res;
     },
     reply: async (_, { input }, ctx) => {
+      if (!ctx.user) {
+        throw new GraphQLError("Not Authenticated");
+      }
+
       const reply = {
         id: cuid(),
         thread_id: input.threadId,
@@ -218,6 +235,10 @@ const resolvers = {
       return res;
     },
     likeThread: async (_, { threadId }, ctx) => {
+      if (!ctx.user) {
+        throw new GraphQLError("Not Authenticated");
+      }
+
       const like = {
         id: cuid(),
         thread_id: threadId,
@@ -229,6 +250,10 @@ const resolvers = {
       return await ctx.db.first().from('threads').where({ id: threadId });
     },
     likeReply: async (_, { replyId }, ctx) => {
+      if (!ctx.user) {
+        throw new GraphQLError("Not Authenticated");
+      }
+
       const reply = {
         id: cuid(),
         reply_id: replyId,
@@ -241,39 +266,43 @@ const resolvers = {
     },
     signup: async (_, { username, password }, ctx) => {
       const userEntry = await ctx.db
-        .select()
-        .from("users")
+        .first()
+        .from('users')
         .where({ username })
         .first();
 
-      if (userRows || userRows.length !== 0) {
-        throw new Error("A user with this username already exists!");
+      if (userEntry) {
+        throw new GraphQLError("A user with this username already exists!");
       }
 
-      const user = {
+      const userInput = {
         id: cuid(),
         username,
         hash: ctx.crypt.hash(password)
       };
 
-      const [res] = await ctx.db
-        .insert(user)
+      const [user] = await ctx.db
+        .insert(userInput)
         .into("users")
         .returning(["id", "username", "hash", "avatar", "created_at"]);
 
-      return res;
+      if (user) {
+        return { user, token: ctx.jwt.create(user) };
+      } else {
+        throw new GraphQLError("Unable to sign up!");
+      }
     },
     signin: async (_, { username, password }, ctx) => {
-      const userEntry = await ctx.db
+      const user = await ctx.db
         .select()
         .from("users")
         .where({ username })
         .first();
 
-      if (userEntry) {
-        return userEntry;
+      if (user) {
+        return { user, token: ctx.jwt.create(user) };
       } else {
-        throw new Error("A user with this username already exists!");
+        throw new GraphQLError("A user with this username already exists!");
       }
     }
   }

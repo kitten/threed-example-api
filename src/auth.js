@@ -11,17 +11,21 @@ const create = user => {
 
 const middleware = (req, res, next) => {
   const authorization = req.get('authorization');
-  const token = authorization.split(' ')[1] || '';
-
-  jwt.verify(token, JWT_SECRET, (err, decoded) => {
-    if (!err && decoded) {
-      req.user = decoded;
-    } else if (err) {
-      console.error(err);
-    }
-
+  if (!authorization || !authorization.startsWith('Bearer')) {
     next();
-  });
+  } else {
+    const token = authorization.split(' ')[1] || '';
+
+    jwt.verify(token, JWT_SECRET, (err, decoded) => {
+      if (!err && decoded) {
+        req.user = decoded;
+      } else if (err) {
+        console.error(err);
+      }
+
+      next();
+    });
+  }
 };
 
 module.exports = { create, middleware };

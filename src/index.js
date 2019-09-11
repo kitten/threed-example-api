@@ -12,6 +12,7 @@ const PORT = process.env.PORT || 3000;
 const server = new ApolloServer({
   typeDefs: schema.typeDefs,
   resolvers: schema.resolvers,
+  cacheControl: false,
   tracing: DEV,
   introspection: DEV,
   playground: DEV,
