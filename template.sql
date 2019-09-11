@@ -6,8 +6,6 @@ CREATE TABLE likes (
     thread_id character varying(25) REFERENCES threads(id)
 );
 
--- Indices -------------------------------------------------------
-
 CREATE UNIQUE INDEX reactions_pkey ON likes(id text_ops);
 
 CREATE TABLE replies (
@@ -17,8 +15,6 @@ CREATE TABLE replies (
     text text NOT NULL,
     thread_id character varying(25) NOT NULL REFERENCES threads(id)
 );
-
--- Indices -------------------------------------------------------
 
 CREATE UNIQUE INDEX messages_pkey ON replies(id text_ops);
 
@@ -30,8 +26,6 @@ CREATE TABLE threads (
     created_at timestamp without time zone NOT NULL DEFAULT now()
 );
 
--- Indices -------------------------------------------------------
-
 CREATE UNIQUE INDEX threads_pkey ON threads(id text_ops);
 
 CREATE TABLE users (
@@ -42,8 +36,5 @@ CREATE TABLE users (
     created_at timestamp without time zone DEFAULT now()
 );
 
--- Indices -------------------------------------------------------
-
 CREATE UNIQUE INDEX users_pkey ON users(id text_ops);
 CREATE UNIQUE INDEX users_handle_key ON users(username text_ops);
-
