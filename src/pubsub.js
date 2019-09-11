@@ -1,17 +1,11 @@
 const { PostgresPubSub } = require("graphql-postgres-subscriptions");
-
-const {
-  POSTGRES_HOST = "127.0.0.1",
-  POSTGRES_USER = "postgres",
-  POSTGRES_PASSWORD = "postgres",
-  POSTGRES_DB = "postgres"
-} = process.env;
+const constants = require('./constants');
 
 const pubsub = new PostgresPubSub({
-  user: POSTGRES_USER,
-  host: POSTGRES_HOST,
-  database: POSTGRES_DB,
-  password: POSTGRES_PASSWORD,
+  user: constants.POSTGRES_USER,
+  host: constants.POSTGRES_HOST,
+  database: constants.POSTGRES_DB,
+  password: constants.POSTGRES_PASSWORD,
 });
 
 module.exports = pubsub;

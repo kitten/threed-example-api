@@ -1,12 +1,11 @@
 const jwt = require('jsonwebtoken');
-
-const { JWT_SECRET = 'threed-secret-123' } = process.env;
+const constants = require('./constants');
 
 const create = user => {
   return jwt.sign({
     id: user.id || '',
     username: user.username || ''
-  }, JWT_SECRET);
+  }, constants.JWT_SECRET);
 };
 
 const middleware = (req, res, next) => {
