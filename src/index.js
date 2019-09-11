@@ -10,7 +10,7 @@ const schema = require('./schema');
 const crypt = require('./crypt');
 const auth = require('./auth');
 
-const DEV = process.env.NODE_ENV !== 'development';
+const DEV = process.env.NODE_ENV !== 'production';
 const PORT = process.env.PORT || 3000;
 
 const context = {
