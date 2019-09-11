@@ -49,12 +49,12 @@ const typeDefs = gql`
     threads(sortBy: SortBy!, skip: Int, limit: Int): [Thread!]!
     thread(id: ID!): Thread
   }
-  
+
   input ThreadInput {
     title: String!
     text: String
   }
-  
+
   input ReplyInput {
     threadId: ID!
     text: String!
@@ -75,40 +75,26 @@ const typeDefs = gql`
   }
 `;
 
-const translateSortBy = (baseQuery, val) => {
-  switch (val) {
-    case "LATEST":
-      return baseQuery.orderBy("created_at", "desc");
-    case "POPULAR":
-      return baseQuery.orderBy("created_at", "desc");
-    default: throw new Error("Invalid sort_by field.");
-  }
-}
-
 const resolvers = {
   DateTime: GraphQLDateTime,
-  User: parent => ({
-    id: parent.id,
-    username: parent.username,
-    avatar: parent.avatar || null,
-    createdAt: parent.created_at
-  }),
+
   Query: {
     threads: async (_, { sortBy, skip = 0, limit = 10 }, ctx) => {
-      const baseQuery = ctx.db
-        .select(
-          "threads.id",
-          "threads.title",
-          "threads.text",
-          "threads.created_by AS createdBy",
-          "threads.created_at AS createdAt"
-        )
+      const threads = ctx.db
+        .select()
         .from("threads")
         .limit(limit)
         .offset(skip)
         .orderBy(sortBy);
 
-      return await translateSortBy(baseQuery, sortBy);
+      switch (sortBy) {
+        case 'LATEST':
+          return await threads.orderBy('created_at', 'desc');
+        case 'OLDEST':
+          return await threads.orderBy('created_at', 'asc');
+        default:
+          return await threads;
+      }
     },
     thread: async (_, { id }, ctx) => {
       return await ctx.db
@@ -117,72 +103,89 @@ const resolvers = {
         .where({ id });
     }
   },
+
+  User: parent => ({
+    id: parent.id,
+    username: parent.username,
+    avatar: parent.avatar || null,
+    createdAt: parent.created_at
+  }),
+
   Thread: {
-    createdBy: async ({ createdBy }, _, ctx) => {
+    createdAt: parent => parent.created_at,
+    createdBy: async (parent, _, ctx) => {
       return await ctx.db
-        .first("id", "username", "avatar", "created_at AS createdAt")
-        .from("users")
-        .where({ id: createdBy });
+        .first()
+        .from('users')
+        .where({ id: parent.created_by });
     },
-    likesNumber: async ({ id }, _, ctx) => {
+    likesNumber: async (parent, _, ctx) => {
       return await ctx.db
-        .count("id")
-        .from("likes")
-        .where({ thread_id: id });
+        .count('id')
+        .from('likes')
+        .where({ thread_id: parent.id });
     },
-    likes: async ({ id }, { skip = 0, limit = 10 }, ctx) => {
+    likes: async (parent, { skip = 0, limit = 10 }, ctx) => {
       return await ctx.db
         .select()
-        .from("likes")
+        .from('likes')
+        .orderBy('created_at', 'desc')
+        .where({ thread_id: parent.id })
         .limit(limit)
-        .offset(skip)
-        .where({ thread_id: id });
+        .offset(skip);
     },
-    repliesNumber: async ({ id }, _, ctx) => {
+    repliesNumber: async (parent, _, ctx) => {
       return await ctx.db
-        .count("id")
-        .from("replies")
-        .where({ thread_id: id });
+        .count('id')
+        .from('replies')
+        .where({ thread_id: parent.id });
     },
-    replies: async ({ id }, { skip = 0, limit = 10 }, ctx) => {
+    replies: async (parent, { skip = 0, limit = 10 }, ctx) => {
       return await ctx.db
         .select()
-        .from("replies")
+        .from('replies')
+        .orderBy('created_at', 'desc')
+        .where({ thread_id: parent.id })
         .limit(limit)
-        .offset(skip)
-        .where({ thread_id: id });
+        .offset(skip);
     }
   },
+
   Like: {
-    createdBy: async ({ created_by: createdBy }, _, ctx) => {
+    createdAt: parent => parent.created_at,
+    createdBy: async (parent, _, ctx) => {
       return await ctx.db
-        .first("id", "username", "avatar", "created_at AS createdAt")
-        .from("users")
-        .where({ id: createdBy });
+        .first()
+        .from('users')
+        .where({ id: parent.created_by });
     }
   },
+
   Reply: {
-    likesNumber: async ({ id }, _, ctx) => {
+    createdAt: parent => parent.created_at,
+    createdBy: async (parent, _, ctx) => {
       return await ctx.db
-        .count("id")
-        .from("likes")
-        .where({ reply_id: id });
+        .first()
+        .from('users')
+        .where({ id: parent.created_by });
     },
-    likes: async ({ id }, { skip = 0, limit = 10 }, ctx) => {
+    likesNumber: async (parent, _, ctx) => {
+      return await ctx.db
+        .count('id')
+        .from('likes')
+        .where({ reply_id: parent.id });
+    },
+    likes: async (parent, { skip = 0, limit = 10 }, ctx) => {
       return await ctx.db
         .select()
         .from("likes")
+        .orderBy('created_at', 'desc')
+        .where({ reply_id: parent.id })
         .limit(limit)
-        .offset(skip)
-        .where({ reply_id: id });
-    },
-    createdBy: async ({ created_by: createdBy }, _, ctx) => {
-      return await ctx.db
-        .first("id", "username", "avatar", "created_at AS createdAt")
-        .from("users")
-        .where({ id: createdBy });
+        .offset(skip);
     }
   },
+
   Mutation: {
     createThread: async (_, { input }, ctx) => {
       const thread = {
@@ -222,7 +225,7 @@ const resolvers = {
         created_by: ctx.user.id
       };
 
-      await ctx.db.insert(like).into('likes')
+      await ctx.db.insert(like).into('likes');
       return await ctx.db.first().from('threads').where({ id: threadId });
     },
     likeReply: async (_, { replyId }, ctx) => {
