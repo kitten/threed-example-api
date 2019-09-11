@@ -25,7 +25,7 @@ const server = new ApolloServer({
   cacheControl: false,
   tracing: DEV,
   introspection: DEV,
-  subscriptions: '/subscriptions',
+  subscriptions: false,
   playground: DEV ? {
     endpoint: '/graphql',
     subscriptionEndpoint: '/subscriptions',
@@ -45,7 +45,6 @@ const http = createServer(app);
 app.use(cors());
 app.use('*', auth.middleware);
 
-server.installSubscriptionHandlers(http);
 server.applyMiddleware({ app });
 
 http.listen(PORT, () => {

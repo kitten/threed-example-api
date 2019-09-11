@@ -7,9 +7,6 @@
     "start": "node src/index.js",
     "dev": "nodemon src/index.js"
   },
-  "resolutions": {
-    "graphql-subscriptions": "^1.1.0"
-  },
   "dependencies": {
     "apollo-server-express": "^2.9.3",
     "bcryptjs": "^2.4.3",
@@ -19,7 +16,6 @@
     "graphql": "^14.5.4",
     "graphql-iso-date": "^3.6.1",
     "graphql-postgres-subscriptions": "^1.0.5",
-    "graphql-subscriptions": "^1.1.0",
     "jsonwebtoken": "^8.5.1",
     "knex": "^0.19.3",
     "pg": "^7.12.1",
