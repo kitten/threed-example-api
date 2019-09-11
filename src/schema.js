@@ -71,10 +71,10 @@ const typeDefs = gql`
   }
 
   type Subscription {
-    newReply(threadId: ID!): Reply!
-    newThread: Thread!
-    newTheadLike(threadId: ID!): Thread!
-    newReplyLike(replyId: ID!): Reply!
+    newReply(threadId: ID!): Reply
+    newThread: Thread
+    newTheadLike(threadId: ID!): Thread
+    newReplyLike(replyId: ID!): Reply
   }
 
   type Mutation {
