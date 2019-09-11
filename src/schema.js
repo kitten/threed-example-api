@@ -217,7 +217,12 @@ const resolvers = {
         .into("threads")
         .returning(["id", "title", "text", "created_by", "created_at"]);
 
-      return res;
+      if (res) {
+        pubsub.publish('newThread', { newThread: res });
+        return res;
+      } else {
+        return null;
+      }
     },
     reply: async (_, { input }, ctx) => {
       if (!ctx.user) {
@@ -317,14 +322,8 @@ const resolvers = {
     }
   },
   Subscription: {
-    // newLike: {
-    //   subscribe: () => pubsub.asyncIterator("newLike")
-    // },
-    // newReply: {
-    //   subscribe: () => pubsub.asyncIterator("newReply")
-    // },
     newThread: {
-      subscribe: () => pubsub.asyncIterator("newThread")
+      subscribe: () => pubsub.asyncIterator('newThread')
     }
   }
 };
