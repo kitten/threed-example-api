@@ -2,6 +2,9 @@ const cuid = require('cuid');
 const { GraphQLError } = require('graphql');
 const { gql } = require('apollo-server-express');
 const { GraphQLDateTime } = require('graphql-iso-date');
+const { PubSub } = require('graphql-subscriptions');
+
+const pubsub = new PubSub();
 
 const typeDefs = gql`
   scalar DateTime
@@ -67,6 +70,10 @@ const typeDefs = gql`
     token: String!
   }
 
+  type Subscription {
+    newThread: Thread
+  }
+
   type Mutation {
     createThread(input: ThreadInput!): Thread!
     reply(input: ReplyInput!): Thread!
@@ -89,10 +96,10 @@ const resolvers = {
         .offset(skip);
 
       switch (sortBy) {
-        case 'LATEST':
-          return await threads.orderBy('created_at', 'desc');
-        case 'OLDEST':
-          return await threads.orderBy('created_at', 'asc');
+        case "LATEST":
+          return await threads.orderBy("created_at", "desc");
+        case "OLDEST":
+          return await threads.orderBy("created_at", "asc");
         default:
           return await threads;
       }
@@ -110,7 +117,7 @@ const resolvers = {
 
       return await ctx.db
         .first()
-        .from('users')
+        .from("users")
         .where({ id: ctx.user.id });
     }
   },
@@ -124,35 +131,35 @@ const resolvers = {
     createdBy: async (parent, _, ctx) => {
       return await ctx.db
         .first()
-        .from('users')
+        .from("users")
         .where({ id: parent.created_by });
     },
     likesNumber: async (parent, _, ctx) => {
       return await ctx.db
-        .count('id')
-        .from('likes')
+        .count("id")
+        .from("likes")
         .where({ thread_id: parent.id });
     },
     likes: async (parent, { skip = 0, limit = 10 }, ctx) => {
       return await ctx.db
         .select()
-        .from('likes')
-        .orderBy('created_at', 'desc')
+        .from("likes")
+        .orderBy("created_at", "desc")
         .where({ thread_id: parent.id })
         .limit(limit)
         .offset(skip);
     },
     repliesNumber: async (parent, _, ctx) => {
       return await ctx.db
-        .count('id')
-        .from('replies')
+        .count("id")
+        .from("replies")
         .where({ thread_id: parent.id });
     },
     replies: async (parent, { skip = 0, limit = 10 }, ctx) => {
       return await ctx.db
         .select()
-        .from('replies')
-        .orderBy('created_at', 'desc')
+        .from("replies")
+        .orderBy("created_at", "desc")
         .where({ thread_id: parent.id })
         .limit(limit)
         .offset(skip);
@@ -164,7 +171,7 @@ const resolvers = {
     createdBy: async (parent, _, ctx) => {
       return await ctx.db
         .first()
-        .from('users')
+        .from("users")
         .where({ id: parent.created_by });
     }
   },
@@ -174,26 +181,25 @@ const resolvers = {
     createdBy: async (parent, _, ctx) => {
       return await ctx.db
         .first()
-        .from('users')
+        .from("users")
         .where({ id: parent.created_by });
     },
     likesNumber: async (parent, _, ctx) => {
       return await ctx.db
-        .count('id')
-        .from('likes')
+        .count("id")
+        .from("likes")
         .where({ reply_id: parent.id });
     },
     likes: async (parent, { skip = 0, limit = 10 }, ctx) => {
       return await ctx.db
         .select()
         .from("likes")
-        .orderBy('created_at', 'desc')
+        .orderBy("created_at", "desc")
         .where({ reply_id: parent.id })
         .limit(limit)
         .offset(skip);
     }
   },
-
   Mutation: {
     createThread: async (_, { input }, ctx) => {
       if (!ctx.user) {
@@ -209,8 +215,10 @@ const resolvers = {
 
       const [res] = await ctx.db
         .insert(thread)
-        .into('threads')
-        .returning(['id', 'title', 'text', 'created_by', 'created_at']);
+        .into("threads")
+        .returning(["id", "title", "text", "created_by", "created_at"]);
+
+      pubsub.publish('newThread', { newThread: res });
 
       return res;
     },
@@ -228,8 +236,8 @@ const resolvers = {
 
       const [res] = await ctx.db
         .insert(reply)
-        .into('replies')
-        .returning(['id', 'thread_id', 'text', 'created_by', 'created_at']);
+        .into("replies")
+        .returning(["id", "thread_id", "text", "created_by", "created_at"]);
 
       return res;
     },
@@ -245,8 +253,11 @@ const resolvers = {
         created_by: ctx.user.id
       };
 
-      await ctx.db.insert(like).into('likes');
-      return await ctx.db.first().from('threads').where({ id: threadId });
+      await ctx.db.insert(like).into("likes");
+      return await ctx.db
+        .first()
+        .from("threads")
+        .where({ id: threadId });
     },
     likeReply: async (_, { replyId }, ctx) => {
       if (!ctx.user) {
@@ -260,13 +271,16 @@ const resolvers = {
         created_by: ctx.user.id
       };
 
-      await ctx.db.insert(like).into('likes');
-      return await ctx.db.first().from('replies').where({ id: replyId });
+      await ctx.db.insert(like).into("likes");
+      return await ctx.db
+        .first()
+        .from("replies")
+        .where({ id: replyId });
     },
     signup: async (_, { username, password }, ctx) => {
       const userEntry = await ctx.db
         .first()
-        .from('users')
+        .from("users")
         .where({ username })
         .first();
 
@@ -303,6 +317,17 @@ const resolvers = {
       } else {
         throw new GraphQLError("A user with this username already exists!");
       }
+    }
+  },
+  Subscription: {
+    // newLike: {
+    //   subscribe: () => pubsub.asyncIterator("newLike")
+    // },
+    // newReply: {
+    //   subscribe: () => pubsub.asyncIterator("newReply")
+    // },
+    newThread: {
+      subscribe: () => pubsub.asyncIterator("newThread")
     }
   }
 };
