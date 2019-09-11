@@ -1,4 +1,5 @@
 const cuid = require('cuid');
+const { withFilter } = require('graphql-subscriptions')
 const { GraphQLError } = require('graphql');
 const { gql } = require('apollo-server-express');
 const { GraphQLDateTime } = require('graphql-iso-date');
@@ -70,7 +71,8 @@ const typeDefs = gql`
   }
 
   type Subscription {
-    newThread: Thread
+    newReply(threadId: ID!): Reply!
+    newThread: Thread!
   }
 
   type Mutation {
@@ -241,7 +243,13 @@ const resolvers = {
         .into("replies")
         .returning(["id", "thread_id", "text", "created_by", "created_at"]);
 
-      return res;
+      if (res) {
+        pubsub.publish('newReply', { newReply: res });
+        return res;
+      } else {
+        return null;
+      }
+
     },
     likeThread: async (_, { threadId }, ctx) => {
       if (!ctx.user) {
@@ -322,6 +330,12 @@ const resolvers = {
     }
   },
   Subscription: {
+    newReply: {
+      subscribe: withFilter(
+        () => pubsub.asyncIterator('newReply'),
+        (payload, variables) => variables.threadId === payload.newReply.thread_id
+      )
+    },
     newThread: {
       subscribe: () => pubsub.asyncIterator('newThread')
     }
