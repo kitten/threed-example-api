@@ -4,7 +4,8 @@
   "main": "index.js",
   "license": "MIT",
   "scripts": {
-    "start": "nodemon src/index.js"
+    "start": "node src/index.js",
+    "dev": "nodemon src/index.js"
   },
   "resolutions": {
     "graphql-subscriptions": "^1.1.0"
@@ -12,6 +13,7 @@
   "dependencies": {
     "apollo-server-express": "^2.9.3",
     "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
     "cuid": "^2.1.6",
     "express": "^4.17.1",
     "graphql": "^14.5.4",
@@ -20,7 +22,8 @@
     "graphql-subscriptions": "^1.1.0",
     "jsonwebtoken": "^8.5.1",
     "knex": "^0.19.3",
-    "pg": "^7.12.1"
+    "pg": "^7.12.1",
+    "subscriptions-transport-ws": "^0.9.16"
   },
   "devDependencies": {
     "nodemon": "^1.19.2"

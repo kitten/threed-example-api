@@ -1,6 +1,9 @@
 const { ApolloServer } = require('apollo-server-express');
+const { execute, subscribe } = require('graphql');
+const { SubscriptionServer } = require('subscriptions-transport-ws');
+const { createServer } = require('http');
+const cors = require('cors');
 const express = require('express');
-const http = require("http");
 
 const database = require('./database');
 const schema = require('./schema');
@@ -10,6 +13,12 @@ const auth = require('./auth');
 const DEV = process.env.NODE_ENV !== 'development';
 const PORT = process.env.PORT || 3000;
 
+const context = {
+  db: database,
+  jwt: auth,
+  crypt
+};
+
 const server = new ApolloServer({
   typeDefs: schema.typeDefs,
   resolvers: schema.resolvers,
@@ -17,26 +26,32 @@ const server = new ApolloServer({
   tracing: DEV,
   introspection: DEV,
   playground: DEV,
-  context: ({ req }) => ({
-    db: database,
-    user: (req && req.user) || null,
-    jwt: auth,
-    crypt
-  })
+  subscriptions: '/subscriptions',
+  context: ({ req, connection }) => {
+    if (connection) {
+      return context;
+    } else {
+      return { ...context, user: (req && req.user) || null };
+    }
+  }
 });
 
 const app = express();
+const http = createServer(app);
 
+app.use(cors());
 app.use('*', auth.middleware);
-const httpServer = http.createServer(app);
-server.installSubscriptionHandlers(httpServer);
+
+server.installSubscriptionHandlers(http);
 server.applyMiddleware({ app });
 
-httpServer.listen(PORT, () => {
-    console.log(
-      `🚀 Server ready at http://localhost:${PORT}${server.graphqlPath}`
-    );
-    console.log(
-      `🚀 Subscriptions ready at ws://localhost:${PORT}${server.subscriptionsPath}`
-    );
+http.listen(PORT, () => {
+  new SubscriptionServer({
+    schema: server.schema,
+    execute,
+    subscribe,
+  }, {
+    server: http,
+    path: '/subscriptions',
+  });
 });
