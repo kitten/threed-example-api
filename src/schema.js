@@ -138,12 +138,12 @@ const resolvers = {
         .where({ id: parent.created_by });
     },
     likesNumber: async (parent, _, ctx) => {
-      const { count } = await ctx.db
+      const { count: likesCount } = await ctx.db
         .count("id")
         .first()
         .from("likes")
         .where({ thread_id: parent.id });
-      return count || 0;
+      return likesCount;
     },
     likes: async (parent, { skip = 0, limit = 10 }, ctx) => {
       return await ctx.db
@@ -155,12 +155,12 @@ const resolvers = {
         .offset(skip);
     },
     repliesNumber: async (parent, _, ctx) => {
-      const { count } = await ctx.db
+      const { count: repliesCount } = await ctx.db
         .count("id")
         .from("replies")
         .first()
         .where({ thread_id: parent.id });
-      return count || 0;
+      return repliesCount;
     },
     replies: async (parent, { skip = 0, limit = 10 }, ctx) => {
       return await ctx.db
@@ -192,10 +192,13 @@ const resolvers = {
         .where({ id: parent.created_by });
     },
     likesNumber: async (parent, _, ctx) => {
-      return await ctx.db
+      const { count: likesCount } = ctx.db
         .count("id")
+        .first()
         .from("likes")
         .where({ reply_id: parent.id });
+
+      return likesCount;
     },
     likes: async (parent, { skip = 0, limit = 10 }, ctx) => {
       return await ctx.db
