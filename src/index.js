@@ -2,7 +2,6 @@ const { ApolloServer } = require('apollo-server-express');
 const { execute, subscribe } = require('graphql');
 const { SubscriptionServer } = require('subscriptions-transport-ws');
 const { createServer } = require('http');
-const cors = require('cors');
 const express = require('express');
 
 const database = require('./database');
@@ -23,6 +22,7 @@ const server = new ApolloServer({
   typeDefs: schema.typeDefs,
   resolvers: schema.resolvers,
   cacheControl: false,
+  cors: true,
   tracing: DEV,
   introspection: DEV,
   subscriptions: false,
@@ -42,7 +42,6 @@ const server = new ApolloServer({
 const app = express();
 const http = createServer(app);
 
-app.use(cors());
 app.use('*', auth.middleware);
 
 server.applyMiddleware({ app });

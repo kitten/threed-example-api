@@ -16,6 +16,7 @@
     "graphql": "^14.5.4",
     "graphql-iso-date": "^3.6.1",
     "graphql-postgres-subscriptions": "^1.0.5",
+    "graphql-subscriptions": "^1.1.0",
     "jsonwebtoken": "^8.5.1",
     "knex": "^0.19.3",
     "pg": "^7.12.1",
