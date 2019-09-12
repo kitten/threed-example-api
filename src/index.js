@@ -47,12 +47,16 @@ app.use('*', auth.middleware);
 server.applyMiddleware({ app });
 
 http.listen(PORT, () => {
-  new SubscriptionServer({
-    schema: server.schema,
-    execute,
-    subscribe,
-  }, {
-    server: http,
-    path: '/subscriptions',
-  });
+  new SubscriptionServer(
+    {
+      schema: server.schema,
+      execute,
+      onConnect: () => context,
+      subscribe,
+    },
+    {
+      server: http,
+      path: "/subscriptions"
+    }
+  );
 });
