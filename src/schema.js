@@ -79,7 +79,7 @@ const typeDefs = gql`
 
   type Mutation {
     createThread(input: ThreadInput!): Thread!
-    reply(input: ReplyInput!): Thread!
+    reply(input: ReplyInput!): Reply!
     likeThread(threadId: ID!): Thread!
     likeReply(replyId: ID!): Reply!
     signup(username: String!, password: String!): SigninResult!
