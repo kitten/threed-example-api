@@ -29,6 +29,7 @@ const typeDefs = gql`
     createdAt: DateTime!
     likesNumber: Int!
     likes(skip: Int, limit: Int): [Like!]!
+    hasUserLiked: Boolean
   }
 
   type Thread {
@@ -37,10 +38,11 @@ const typeDefs = gql`
     text: String
     createdBy: User!
     createdAt: DateTime!
-    likesNumber: Int
-    likes(skip: Int, limit: Int): [Like!]
     repliesNumber: Int
     replies(skip: Int, limit: Int): [Reply!]
+    likesNumber: Int
+    likes(skip: Int, limit: Int): [Like!]
+    hasUserLiked: Boolean
   }
 
   type Like {
@@ -137,13 +139,30 @@ const resolvers = {
         .from("users")
         .where({ id: parent.created_by });
     },
+    repliesNumber: async (parent, _, ctx) => {
+      const { count } = await ctx.db
+        .count("id")
+        .first()
+        .from("replies")
+        .where({ thread_id: parent.id });
+      return count;
+    },
+    replies: async (parent, { skip = 0, limit = 10 }, ctx) => {
+      return await ctx.db
+        .select()
+        .from("replies")
+        .orderBy("created_at", "desc")
+        .where({ thread_id: parent.id })
+        .limit(limit)
+        .offset(skip);
+    },
     likesNumber: async (parent, _, ctx) => {
-      const { count: likesCount } = await ctx.db
+      const { count } = await ctx.db
         .count("id")
         .first()
         .from("likes")
         .where({ thread_id: parent.id });
-      return likesCount;
+      return count;
     },
     likes: async (parent, { skip = 0, limit = 10 }, ctx) => {
       return await ctx.db
@@ -154,22 +173,13 @@ const resolvers = {
         .limit(limit)
         .offset(skip);
     },
-    repliesNumber: async (parent, _, ctx) => {
-      const { count: repliesCount } = await ctx.db
-        .count("id")
-        .from("replies")
+    hasUserLiked: async (parent, _, ctx) => {
+      if (!ctx.user) return false;
+      const hasLike = ctx.db
         .first()
-        .where({ thread_id: parent.id });
-      return repliesCount;
-    },
-    replies: async (parent, { skip = 0, limit = 10 }, ctx) => {
-      return await ctx.db
-        .select()
-        .from("replies")
-        .orderBy("created_at", "desc")
-        .where({ thread_id: parent.id })
-        .limit(limit)
-        .offset(skip);
+        .from("likes")
+        .where({ thread_id: parent.id, created_by: ctx.user.id });
+      return !!hasLike;
     }
   },
 
@@ -192,12 +202,12 @@ const resolvers = {
         .where({ id: parent.created_by });
     },
     likesNumber: async (parent, _, ctx) => {
-      const { count: likesCount } = await ctx.db
+      const { count } = await ctx.db
         .count("id")
         .first()
         .from("likes")
         .where({ reply_id: parent.id });
-      return likesCount;
+      return count;
     },
     likes: async (parent, { skip = 0, limit = 10 }, ctx) => {
       return await ctx.db
@@ -207,6 +217,14 @@ const resolvers = {
         .where({ reply_id: parent.id })
         .limit(limit)
         .offset(skip);
+    },
+    hasUserLiked: async (parent, _, ctx) => {
+      if (!ctx.user) return false;
+      const hasLike = ctx.db
+        .first()
+        .from("likes")
+        .where({ reply_id: parent.id, created_by: ctx.user.id });
+      return !!hasLike;
     }
   },
   Mutation: {
