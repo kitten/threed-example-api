@@ -1,10 +1,10 @@
-const cuid = require('cuid');
-const { withFilter } = require('graphql-subscriptions')
-const { GraphQLError } = require('graphql');
-const { gql } = require('apollo-server-express');
-const { GraphQLDateTime } = require('graphql-iso-date');
+const cuid = require("cuid");
+const { withFilter } = require("graphql-subscriptions");
+const { GraphQLError } = require("graphql");
+const { gql } = require("apollo-server-express");
+const { GraphQLDateTime } = require("graphql-iso-date");
 
-const pubsub = require('./pubsub');
+const pubsub = require("./pubsub");
 
 const typeDefs = gql`
   scalar DateTime
@@ -67,11 +67,6 @@ const typeDefs = gql`
     text: String!
   }
 
-  type SigninResult {
-    user: User!
-    token: String!
-  }
-
   type Subscription {
     newThread: Thread!
     newReply(threadId: ID!): Reply!
@@ -79,11 +74,41 @@ const typeDefs = gql`
     newReplyLike(replyId: ID!): Like!
   }
 
+  interface Payload {
+    viewer: Query!
+  }
+
+  type SigninResult {
+    user: User!
+    token: String!
+    viewer: Query!
+  }
+
+  type CreateThreadPayload {
+    node: Thread!
+    viewer: Query!
+  }
+
+  type ReplyPayload {
+    node: Reply!
+    viewer: Query!
+  }
+
+  type LikeThreadPayload {
+    node: Thread!
+    viewer: Query!
+  }
+
+  type LikeReplyPayload {
+    node: Reply!
+    viewer: Query!
+  }
+
   type Mutation {
-    createThread(input: ThreadInput!): Thread!
-    reply(input: ReplyInput!): Reply!
-    likeThread(threadId: ID!): Thread!
-    likeReply(replyId: ID!): Reply!
+    createThread(input: ThreadInput!): CreateThreadPayload!
+    reply(input: ReplyInput!): ReplyPayload!
+    likeThread(threadId: ID!): LikeThreadPayload!
+    likeReply(replyId: ID!): LikeReplyPayload!
     signup(username: String!, password: String!): SigninResult!
     signin(username: String!, password: String!): SigninResult!
   }
@@ -247,7 +272,10 @@ const resolvers = {
 
       if (res) {
         pubsub.publish("newThread", { newThread: res });
-        return res;
+        return {
+          node: res,
+          viewer: {}
+        };
       } else {
         return null;
       }
@@ -271,7 +299,10 @@ const resolvers = {
 
       if (res) {
         pubsub.publish("newReply", { newReply: res });
-        return res;
+        return {
+          node: res,
+          viewer: {}
+        };
       } else {
         return null;
       }
@@ -296,7 +327,10 @@ const resolvers = {
 
       if (res) {
         pubsub.publish("newThreadLike", { newThreadLike: res });
-        return res;
+        return {
+          node: res,
+          viewer: {}
+        };
       } else {
         return null;
       }
@@ -322,7 +356,10 @@ const resolvers = {
 
       if (res) {
         pubsub.publish("newReplyLike", { newReplyLike: like });
-        return res;
+        return {
+          node: res,
+          viewer: {}
+        };
       } else {
         return null;
       }
@@ -350,7 +387,7 @@ const resolvers = {
         .returning(["id", "username", "hash", "avatar", "created_at"]);
 
       if (user) {
-        return { user, token: ctx.jwt.create(user) };
+        return { user, token: ctx.jwt.create(user), viewer: {} };
       } else {
         throw new GraphQLError("Unable to sign up!");
       }
@@ -367,7 +404,7 @@ const resolvers = {
       } else if (!ctx.crypt.compare(password, user.hash)) {
         throw new GraphQLError("Incorrect password!");
       } else {
-        return { user, token: ctx.jwt.create(user) };
+        return { user, token: ctx.jwt.create(user), viewer: {} };
       }
     }
   },
@@ -391,8 +428,7 @@ const resolvers = {
     newThreadLike: {
       subscribe: withFilter(
         () => pubsub.asyncIterator("newThreadLike"),
-        (payload, variables) =>
-          variables.threadId === payload.newThreadLike.id
+        (payload, variables) => variables.threadId === payload.newThreadLike.id
       )
     }
   }
